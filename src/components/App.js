@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import Web3 from 'web3'
 import './App.css';
-import Color from '../abis/Color.json'
-
+import Warranty from '../abis/Warranty.json';
 class App extends Component {
 
   async componentWillMount() {
@@ -26,105 +25,117 @@ class App extends Component {
   async loadBlockchainData() {
     const web3 = window.web3
     // Load account
-    const accounts = await web3.eth.getAccounts()
-    this.setState({ account: accounts[0] })
+    const accounts = await web3.eth.getAccounts();
+    this.setState({ retailer_id: accounts[0] });
 
-    const networkId = await web3.eth.net.getId()
-    const networkData = Color.networks[networkId]
+    const networkId = await web3.eth.net.getId();
+    const networkData = Warranty.networks[networkId];
     if(networkData) {
-      const abi = Color.abi
-      const address = networkData.address
-      const contract = new web3.eth.Contract(abi, address)
-      this.setState({ contract })
-      const totalSupply = await contract.methods.totalSupply().call()
-      this.setState({ totalSupply })
-      // Load Colors
-      for (var i = 1; i <= totalSupply; i++) {
-        const color = await contract.methods.colors(i - 1).call()
-        this.setState({
-          colors: [...this.state.colors, color]
-        })
-      }
-    } else {
-      window.alert('Smart contract not deployed to detected network.')
+      const abi = Warranty.abi;
+      const address = networkData.address;
+      const contract = new web3.eth.Contract(abi, address);
+      this.setState({ contract });
     }
-  }
-
-  mint = (color) => {
-    this.state.contract.methods.mint(color).send({ from: this.state.account })
-    .once('receipt', (receipt) => {
-      this.setState({
-        colors: [...this.state.colors, color]
-      })
-    })
   }
 
   constructor(props) {
     super(props)
+
     this.state = {
-      account: '',
-      contract: null,
-      totalSupply: 0,
-      colors: []
+      retailer_id: '',
+      productName: '',
+      serialNumer: '',
+      conditionsLink: '',
+      transfered_allowed: 0,
+      imageUrl: '',
+      contract: null
     }
+
+    this.handleChangepName = this.handleChangepName.bind(this);
+    this.handleChangeSnum = this.handleChangeSnum.bind(this);
+    this.handleChangeconLink = this.handleChangeconLink.bind(this);
+    this.handleChangeTallowed = this.handleChangeTallowed.bind(this);
+    this.handleChangeIurl = this.handleChangeIurl.bind(this);
   }
+
+  handleChangepName(event) {
+    this.setState({productName: event.target.value});
+  }
+
+  handleChangeSnum(event) {
+    this.setState({serialNumer: event.target.value});
+  }
+
+  handleChangeconLink(event) {
+    this.setState({conditionsLink: event.target.value});
+  }
+
+  handleChangeTallowed(event) {
+    this.setState({transfered_allowed: event.target.value});
+  }
+
+  handleChangeIurl(event) {
+    this.setState({imageUrl: event.target.value});
+  }
+
+  add = (product,
+    serial, linkCond, transfered, image) =>{
+      this.state.contract.methods.addDetails(product,
+        serial,
+        linkCond,
+        transfered,
+        image).send({from: this.state.retailer_id})
+        .once('receipt', (receipt) => {
+          console.log("Successfull");
+        })
+    }
+
+
 
   render() {
     return (
-      <div>
-        <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-          <a
-            className="navbar-brand col-sm-3 col-md-2 mr-0"
-            href="http://www.dappuniversity.com/bootcamp"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Color Tokens
-          </a>
-          <ul className="navbar-nav px-3">
-            <li className="nav-item text-nowrap d-none d-sm-none d-sm-block">
-              <small className="text-white"><span id="account">{this.state.account}</span></small>
-            </li>
-          </ul>
-        </nav>
-        <div className="container-fluid mt-5">
-          <div className="row">
-            <main role="main" className="col-lg-12 d-flex text-center">
-              <div className="content mr-auto ml-auto">
-                <h1>Issue Token</h1>
-                <form onSubmit={(event) => {
+
+      <div className="container pt-5 pb-5">
+      <h1 className="BUY">BUY</h1>
+          <button>BUY NOW</button>
+
+
+          <h1 className="form-heading">Add Product</h1>
+      <form id="myForm" onSubmit={(event) => {
                   event.preventDefault()
-                  const color = this.color.value
-                  this.mint(color)
+                  const product = this.state.productName;
+                  const serial = this.state.serialNumer;
+                  const linkCond = this.state.conditionsLink;
+                  const transfered = this.state.transfered_allowed;
+                  const image = this.state.imageUrl;
+                  this.add(product,
+                    serial, linkCond, transfered, image)
                 }}>
-                  <input
-                    type='text'
-                    className='form-control mb-1'
-                    placeholder='e.g. #FFFFFF'
-                    ref={(input) => { this.color = input }}
-                  />
-                  <input
-                    type='submit'
-                    className='btn btn-block btn-primary'
-                    value='MINT'
-                  />
-                </form>
-              </div>
-            </main>
-          </div>
-          <hr/>
-          <div className="row text-center">
-            { this.state.colors.map((color, key) => {
-              return(
-                <div key={key} className="col-md-3 mb-3">
-                  <div className="token" style={{ backgroundColor: color }}></div>
-                  <div>{color}</div>
-                </div>
-              )
-            })}
-          </div>
+        <div className="mb-3">
+          <label htmlFor="productName">Product name</label>
+          <input type="text" value={this.state.productName} onChange={this.handleChangepName} className="form-control" id="productName" />
+          <p id="nameErrMsg" className="error-message"></p>
         </div>
-      </div>
+        <div className="mb-3">
+          <label htmlFor="serialNumber">Serial number</label>
+          <input type="text" value={this.state.serialNumer} onChange={this.handleChangeSnum} className="form-control" id="serialNumber" />
+          <p id="serialErrMsg" className="error-message"></p>
+        </div>
+        <div className="mb-3">
+            <label htmlFor="conditions">Link to warranty conditions</label>
+            <input type="url" value={this.state.conditionsLink} onChange={this.handleChangeconLink} className="form-control" id="conditions" />
+        </div>
+        <div className="mb-3">
+            <label htmlFor="transactions_allowed">Transactions Allowed</label>
+            <input type="number" value={this.state.transfered_allowed} onChange={this.handleChangeTallowed} id="transactions_allowed" name="allowed_transactions" min="1" max="10" step="1" />
+        </div>
+        <div className="mb-3">
+            <label htmlFor="imgUrl">Image Url</label>
+            <input type="url" value={this.state.imageUrl} onChange={this.handleChangeIurl} id="imgUrl" name="imgUrl" />
+          </div>
+        <button className="btn btn-primary" id="submitBtn">Submit</button>
+      </form>
+    </div>
     );
   }
 }
